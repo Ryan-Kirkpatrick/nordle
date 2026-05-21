@@ -30,3 +30,15 @@ pip install -r requirements.txt
 
 ## Windows
 Lol.
+
+# Formatting
+
+This project strictly uses PEP8 style formatting. Formatting may be corrected at any time using
+```bash
+black .
+```
+
+or, if you do not want to make changes:
+```bash
+black --check .
+```

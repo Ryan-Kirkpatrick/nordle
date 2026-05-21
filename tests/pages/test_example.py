@@ -1,5 +1,6 @@
 from flask.testing import FlaskClient
 
+
 def test(client: FlaskClient):
     response = client.get("/example")
 
