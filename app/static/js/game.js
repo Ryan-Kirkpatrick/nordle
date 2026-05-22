@@ -85,20 +85,23 @@ const submitBtn = /** @type {HTMLButtonElement} */ (guessForm.querySelector("but
  *
  * @param {string} endpoint
  * @param {object} body
+ * @param {AbortSignal} [signal] forwarded to fetch so the caller can cancel
  * @returns {Promise<any>}
  */
-async function post(endpoint, body) {
+async function post(endpoint, body, signal) {
     try {
         const response = await fetch(`/api/${endpoint}`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body),
+            signal,
         });
         return await response.json();
     } catch {
-        // Network failure or malformed response. Surfaced through the same
-        // {ok: false, reason} channel as server-side failures so callers
-        // don't need a separate code path.
+        // Network failure, abort, or malformed response. Surfaced through
+        // the same {ok: false, reason} channel as server-side failures so
+        // callers don't need a separate code path. Aborts are distinguished
+        // by the caller checking signal.aborted, not by reason.
         return { ok: false, reason: "network_error" };
     }
 }
@@ -299,6 +302,7 @@ function startGame() {
     setMessage("");
     const activeRow = renderGrid({ guesses: [] });
     updateKeyboard({});
+    setFormEnabled(true);
     guessInput.focus();
     return activeRow;
 }
@@ -325,12 +329,15 @@ function renderState(state) {
 /**
  * Submit the current input as a guess. Creates a session on the fly if one
  * doesn't exist yet. Returns the updated sessionId and activeRow for the
- * caller to track — keeping mutable state out of the module scope.
+ * caller to track — keeping mutable state out of the module scope. Returns
+ * null if the submission was aborted (e.g. the player hit New Game while
+ * the request was in flight) so the caller can skip applying stale state.
  * @param {string | null} sessionId
  * @param {HTMLElement | null} activeRow
- * @returns {Promise<{sessionId: string | null, activeRow: HTMLElement | null}>}
+ * @param {AbortSignal} signal
+ * @returns {Promise<{sessionId: string | null, activeRow: HTMLElement | null} | null>}
  */
-async function submitGuess(sessionId, activeRow) {
+async function submitGuess(sessionId, activeRow, signal) {
     const guess = guessInput.value.trim().toLowerCase();
     if (guess.length !== WORD_LENGTH) {
         setMessage(`Guess must be ${WORD_LENGTH} letters.`, "error");
@@ -344,7 +351,8 @@ async function submitGuess(sessionId, activeRow) {
     // knows anything about them. On their first submit we create the session,
     // then immediately use it to send the guess.
     if (!sessionId) {
-        const created = await post("create_session", {});
+        const created = await post("create_session", {}, signal);
+        if (signal.aborted) return null;
         if (!created.ok) {
             setMessage(FAILURE_MESSAGES[created.reason] ?? "Failed to start a new game.", "error");
             setFormEnabled(true);
@@ -356,7 +364,8 @@ async function submitGuess(sessionId, activeRow) {
     guessInput.value = "";
     updateActiveRow(activeRow, "");
 
-    const state = await post("update_session", { session_id: sessionId, guess });
+    const state = await post("update_session", { session_id: sessionId, guess }, signal);
+    if (signal.aborted) return null;
 
     if (!state.ok) {
         setFormEnabled(true);
@@ -381,6 +390,8 @@ async function submitGuess(sessionId, activeRow) {
  */
 function main() {
     let sessionId = null;
+    /** @type {AbortController | null} */
+    let inflight = null;
 
     buildKeyboard();
     let activeRow = startGame();
@@ -389,7 +400,13 @@ function main() {
         // Stop the form from triggering a full page reload — we handle the
         // submit ourselves.
         event.preventDefault();
-        const result = await submitGuess(sessionId, activeRow);
+        inflight?.abort();
+        inflight = new AbortController();
+        const result = await submitGuess(sessionId, activeRow, inflight.signal);
+        // Null means the submission was aborted (New Game ran during the
+        // request). The aborter has already reset sessionId and activeRow;
+        // applying our stale result would clobber that fresh state.
+        if (result === null) return;
         sessionId = result.sessionId;
         activeRow = result.activeRow;
     });
@@ -400,6 +417,7 @@ function main() {
     });
 
     document.getElementById("new-game-btn").addEventListener("click", () => {
+        inflight?.abort();
         sessionId = null;
         activeRow = startGame();
     });
