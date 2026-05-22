@@ -412,8 +412,12 @@ function main() {
     });
 
     guessInput.addEventListener("input", (e) => {
-        const value = /** @type {HTMLInputElement} */ (e.target).value.toLowerCase();
-        updateActiveRow(activeRow, value);
+        const input = /** @type {HTMLInputElement} */ (e.target);
+        // Strip anything that isn't an English letter so pasted text and
+        // IME/accented input can't get into the guess.
+        const cleaned = input.value.toLowerCase().replace(/[^a-z]/g, "");
+        if (cleaned !== input.value) input.value = cleaned;
+        updateActiveRow(activeRow, cleaned);
     });
 
     document.getElementById("new-game-btn").addEventListener("click", () => {
