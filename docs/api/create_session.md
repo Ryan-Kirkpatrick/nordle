@@ -21,20 +21,7 @@ Content-Type: application/json
 
 ### Success
 
-On success the endpoint will provide a unique session ID that may be used with other endpoints.
-
-```json
-{
-    "ok": true,
-    "session_id": "c0a95416-a39e-4adb-a7fc-b05f90e61ec4"
-}
-```
-
-**Response Body:**
-| Field | Type | Description |
-|-------|------|-------------|
-| `ok` | Boolean | Always `true` on success. |
-| `session_id` | String | Session UUID that may be used to retrieve information on and modify the game. |
+On success, the full initial game state is returned. The response is identical in shape to [`get_session`](./get_session.md) — refer to that page for the complete field descriptions and examples.
 
 ### Failure
 

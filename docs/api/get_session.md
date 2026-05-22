@@ -41,7 +41,7 @@ Example response from a fresh game, with no guesses.
 |-------|------|-------------|
 | `ok` | Boolean | Always `true` on success. |
 | `session_id` | String | The UUID of the session. |
-| `guesses` | Array | The guesses made so far. On a fresh game, this will be empty. |
+| `guesses` | `Guess[]` | The guesses made so far, in the order they were made. On a fresh game, this will be empty. |
 | `starting_words` | Integer | How many words are in the pool. |
 
 ### Success - Game In Progress
@@ -73,7 +73,7 @@ Example response from a game in progress with two guesses made. The hidden word 
 |-------|------|-------------|
 | `ok` | Boolean | Always `true` on success. |
 | `session_id` | String | The UUID of the session. |
-| `guesses` | Array | See later note. |
+| `guesses` | `Guess[]` | See below. |
 | `starting_words` | Integer | How many words are in the pool. |
 
 
@@ -112,12 +112,12 @@ Example response from a completed game where the player lost by guessing the hid
 |-------|------|-------------|
 | `ok` | Boolean | Always `true` on success. |
 | `session_id` | String | The UUID of the session. |
-| `guesses` | Array | See later note. |
+| `guesses` | `Guess[]` | See below. |
 | `starting_words` | Integer | How many words are in the pool. |
 | `hidden_word` | String | The word the player was trying to avoid guessing. Only present when the game is complete. |
 
 
-### `guesses` field
+### `Guess`
 
 Each entry in the `guesses` array represents one guess made by the player, in order.
 
