@@ -10,7 +10,8 @@ class Guess(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     guessed_word: Mapped[str] = mapped_column()
-    session_id: Mapped[int] = mapped_column(ForeignKey("sessions.id"))
+    words_remaining: Mapped[int] = mapped_column()
+    session_id: Mapped[str] = mapped_column(ForeignKey("sessions.id"))
 
     session: Mapped["Session"] = relationship(back_populates="guesses")
 
@@ -18,7 +19,7 @@ class Guess(db.Model):
 class Session(db.Model):
     __tablename__ = "sessions"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[str] = mapped_column(primary_key=True)
     hidden_word: Mapped[str] = mapped_column()
     guesses: Mapped[List["Guess"]] = relationship(
         back_populates="session", cascade="all, delete-orphan", order_by=Guess.id
